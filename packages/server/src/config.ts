@@ -51,4 +51,7 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR || join(appHome, 'upload'),
   dataDir: resolve(__dirname, '..', 'data'),
   corsOrigins: process.env.CORS_ORIGINS || '*',
+  externalGateway: process.env.HERMES_WEB_UI_EXTERNAL_GATEWAY === '1',
+  gatewayHost: process.env.GATEWAY_HOST || '',
+  apiServerKey: process.env.API_SERVER_KEY || '',
 }
