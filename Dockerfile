@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN ARCH=$(dpkg --print-architecture) \
     && if [ "$ARCH" = "amd64" ]; then NODE_ARCH="x64"; else NODE_ARCH="$ARCH"; fi \
     && echo "Downloading Node.js v23.11.0 for ${NODE_ARCH}" \
-    && curl -fsSL "https://nodejs.org/dist/v23.11.0/node-v23.11.0-linux-${NODE_ARCH}.tar.gz" \
+    && curl -fsSL "https://npmmirror.com/mirrors/node/v23.11.0/node-v23.11.0-linux-${NODE_ARCH}.tar.gz" \
        -o /tmp/node.tar.gz \
     && tar -xzf /tmp/node.tar.gz -C /usr/local --strip-components=1 \
     && rm -f /tmp/node.tar.gz \
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY package*.json ./
 # Increase Node.js memory limit to prevent OOM during build
 ENV NODE_OPTIONS=--max-old-space-size=4096
-RUN npm install --ignore-scripts && npm rebuild node-pty
+RUN npm install --ignore-scripts --registry=https://registry.npmmirror.com && npm rebuild node-pty
 
 COPY . .
 
