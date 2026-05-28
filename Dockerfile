@@ -33,7 +33,9 @@ RUN npm ci --ignore-scripts --registry=https://registry.npmmirror.com && npm reb
 
 COPY . .
 
-RUN npm run build && npm prune --omit=dev
+# Note: intentionally skipped npm prune --omit=dev here because it hangs on Docker overlay2 (known issue)
+# If image size becomes a concern, switch to multi-stage build instead of prune
+RUN npm run build
 
 ENV NODE_ENV=production
 ENV HOME=/home/agent
