@@ -137,6 +137,15 @@ const peerUserMessageHandlers = new Set<(event: RunEvent) => void>()
 const sessionCommandHandlers = new Set<(event: RunEvent) => void>()
 
 /**
+ * Callback for session title updates (non-session-specific global event)
+ */
+let globalSessionTitleUpdatedHandler: ((sessionId: string, title: string) => void) | null = null
+
+export function setGlobalSessionTitleUpdatedHandler(handler: (sessionId: string, title: string) => void): void {
+  globalSessionTitleUpdatedHandler = handler
+}
+
+/**
  * Global message.delta event handler
  * Distributes events to appropriate session based on session_id
  */
@@ -366,6 +375,15 @@ function globalSessionCommandHandler(event: RunEvent): void {
 
   for (const handler of sessionCommandHandlers) {
     handler(event)
+  }
+}
+
+/**
+ * Global session.title_updated event handler
+ */
+function globalSessionTitleUpdatedEvent(data: { session_id: string; title: string }): void {
+  if (globalSessionTitleUpdatedHandler && data.session_id && data.title) {
+    globalSessionTitleUpdatedHandler(data.session_id, data.title)
   }
 }
 
@@ -607,6 +625,9 @@ export function connectChatRun(requestedProfile?: string | null): Socket {
     chatRunSocket.on('usage.updated', globalUsageUpdatedHandler)
     chatRunSocket.on('agent.event', globalAgentEventHandler)
     chatRunSocket.on('session.command', globalSessionCommandHandler)
+
+    // Session title updates
+    chatRunSocket.on('session.title_updated', globalSessionTitleUpdatedEvent)
 
     globalListenersRegistered = true
   }

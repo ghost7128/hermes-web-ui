@@ -13,6 +13,7 @@ import {
 } from '../../../db/hermes/session-store'
 import { updateUsage } from '../../../db/hermes/usage-store'
 import { logger } from '../../logger'
+import { autoGenerateSessionTitle } from './session-titler'
 import { contentBlocksToString, extractTextForPreview, isContentBlockArray, convertContentBlocks } from './content-blocks'
 import { convertHistoryFormat } from './message-format'
 import { readSseFrames } from './sse-utils'
@@ -338,6 +339,10 @@ export async function handleApiRun(
           error: finalOutput.error || parsed.error,
           queue_remaining: queueLen,
         })
+        // Auto-generate title after first successful response
+        if (eventName === 'run.completed' && session_id) {
+          autoGenerateSessionTitle(session_id, profile, (event, payload) => emit(event, payload)).catch(() => {})
+        }
         if (session_id && queueLen > 0) dequeueNextQueuedRun(socket, session_id)
         return
       }
