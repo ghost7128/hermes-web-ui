@@ -38,19 +38,21 @@ export async function autoGenerateSessionTitle(
     if (!firstUser) return
 
     // Build gateway URL from env vars (external gateway convention)
-    const port = process.env.HERMES_WEB_UI_GATEWAY_PORT || '8080'
-    const host = process.env.HERMES_WEB_UI_GATEWAY_HOST || '127.0.0.1'
+    const port = process.env.HERMES_WEB_UI_GATEWAY_PORT || process.env.GATEWAY_PORT || '8080'
+    const host = process.env.HERMES_WEB_UI_GATEWAY_HOST || process.env.GATEWAY_HOST || '127.0.0.1'
     const upstream = `http://${host}:${port}`
 
     // Read API key from profile .env
-    let apiKey = ''
-    try {
-      const envPath = join(getProfileDir(profile), '.env')
-      const envContent = await safeReadFile(envPath) || ''
-      const match = envContent.match(/^API_SERVER_KEY\s*=\s*"?([^"\n]+)"?\s*$/m)
-      if (match) apiKey = match[1].trim()
-    } catch {
-      // Silently fall back to no API key
+    let apiKey = process.env.API_SERVER_KEY || ''
+    if (!apiKey) {
+      try {
+        const envPath = join(getProfileDir(profile), '.env')
+        const envContent = await safeReadFile(envPath) || ''
+        const match = envContent.match(/^API_SERVER_KEY\s*=\s*"?([^"\n]+)"?\s*$/m)
+        if (match) apiKey = match[1].trim()
+      } catch {
+        // Silently fall back to no API key
+      }
     }
 
     // Build a compact prompt from the first exchange
@@ -61,6 +63,8 @@ export async function autoGenerateSessionTitle(
     const chatUrl = `${upstream}/v1/chat/completions`
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+
+    logger.info('[session-titler] Calling gateway at %s/v1/chat/completions', upstream)
 
     const res = await fetch(chatUrl, {
       method: 'POST',
