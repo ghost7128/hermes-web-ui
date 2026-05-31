@@ -7,8 +7,10 @@
  */
 
 import { getSessionDetail, renameSession } from '../../../db/hermes/session-store'
-import { getGatewayManagerInstance } from '../../gateway-bootstrap'
 import { logger } from '../../logger'
+import { safeReadFile } from '../../config-helpers'
+import { getProfileDir } from '../hermes-profile'
+import { join } from 'path'
 import type { HermesMessageRow } from '../../../db/hermes/session-store'
 
 const TITLE_PROMPT = `Based on this conversation, generate a very short title (max 40 characters, single line, no quotes, no punctuation) that captures the main topic or intent. Return ONLY the title text, nothing else.
@@ -35,21 +37,20 @@ export async function autoGenerateSessionTitle(
     const firstAssistant = detail.messages.find(m => m.role === 'assistant')
     if (!firstUser) return
 
-    // Get gateway credentials
-    const mgr = getGatewayManagerInstance()
-    if (!mgr) {
-      logger.debug('[session-titler] Gateway manager not available for %s', sessionId)
-      return
-    }
+    // Build gateway URL from env vars (external gateway convention)
+    const port = process.env.HERMES_WEB_UI_GATEWAY_PORT || '8080'
+    const host = process.env.HERMES_WEB_UI_GATEWAY_HOST || '127.0.0.1'
+    const upstream = `http://${host}:${port}`
 
-    const upstream = String(mgr.getUpstream(profile) || '').replace(/\/+$/, '')
-    const apiKey = typeof mgr.getApiKey === 'function'
-      ? await Promise.resolve(mgr.getApiKey(profile)) || ''
-      : ''
-
-    if (!upstream) {
-      logger.debug('[session-titler] No gateway upstream for profile %s', profile)
-      return
+    // Read API key from profile .env
+    let apiKey = ''
+    try {
+      const envPath = join(getProfileDir(profile), '.env')
+      const envContent = await safeReadFile(envPath) || ''
+      const match = envContent.match(/^API_SERVER_KEY\s*=\s*"?([^"\n]+)"?\s*$/m)
+      if (match) apiKey = match[1].trim()
+    } catch {
+      // Silently fall back to no API key
     }
 
     // Build a compact prompt from the first exchange
@@ -65,7 +66,7 @@ export async function autoGenerateSessionTitle(
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: '', // gateway picks the default model
+        model: '',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 30,
         temperature: 0.3,
@@ -74,11 +75,7 @@ export async function autoGenerateSessionTitle(
     })
 
     if (!res.ok) {
-      logger.warn(
-        '[session-titler] Gateway returned %d for %s',
-        res.status,
-        sessionId,
-      )
+      logger.warn('[session-titler] Gateway returned %d for %s', res.status, sessionId)
       return
     }
 
@@ -87,9 +84,9 @@ export async function autoGenerateSessionTitle(
 
     // Clean up the title
     let title = rawTitle
-      .replace(/^['"`]+|['"`]+$/g, '')   // strip surrounding quotes
-      .replace(/^Title[:\s]*/i, '')        // strip "Title:" prefix
-      .replace(/[^\x20-\x7E\u4e00-\u9fff\w\s-]/g, '') // keep ASCII printable + CJK
+      .replace(/^['"`]+|['"`]+$/g, '')
+      .replace(/^Title[:\s]*/i, '')
+      .replace(/[^\x20-\x7E\u4e00-\u9fff\w\s-]/g, '')
       .trim()
 
     if (!title || title.length > 60 || title.length < 2) {
