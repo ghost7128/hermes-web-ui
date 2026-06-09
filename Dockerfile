@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN ARCH=$(dpkg --print-architecture) \
     && if [ "$ARCH" = "amd64" ]; then NODE_ARCH="x64"; else NODE_ARCH="$ARCH"; fi \
     && echo "Downloading Node.js v${NODE_VERSION} for ${NODE_ARCH}" \
-    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" \
+    && curl -fsSL "https://npmmirror.com/mirrors/node/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" \
        -o /tmp/node.tar.gz \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
        /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
@@ -29,11 +29,13 @@ WORKDIR /app
 COPY package*.json ./
 # Increase Node.js memory limit to prevent OOM during build
 ENV NODE_OPTIONS=--max-old-space-size=4096
-RUN npm ci --ignore-scripts && npm rebuild node-pty
+RUN npm ci --ignore-scripts --registry=https://registry.npmmirror.com && npm rebuild node-pty
 
 COPY . .
 
-RUN npm run build && npm prune --omit=dev
+# Note: intentionally skipped npm prune --omit=dev here because it hangs on Docker overlay2 (known issue)
+# If image size becomes a concern, switch to multi-stage build instead of prune
+RUN npm run build
 
 ENV NODE_ENV=production
 ENV HOME=/home/agent
