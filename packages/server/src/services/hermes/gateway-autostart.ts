@@ -457,6 +457,10 @@ export async function clearApiServerForProfile(profileDir: string): Promise<void
 }
 
 export async function ensureProfileGatewaysRunning(): Promise<void> {
+  if (process.env.HERMES_WEB_UI_EXTERNAL_GATEWAY === '1') {
+    console.log('[gateway-autostart] external gateway mode — skipping')
+    return
+  }
   await recoverWindowsDesktopGatewayOrphansOnce()
 
   const hermesBin = resolveHermesBin()
