@@ -1064,6 +1064,33 @@ function handleBatchDeleteConfirm() {
   }
 }
 
+.session-item-archive,
+.session-item-unarchive {
+  flex-shrink: 0;
+  opacity: 0.5;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: $text-muted;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all $transition-fast;
+
+  &:hover {
+    opacity: 1;
+    background: rgba($accent-primary, 0.1);
+  }
+}
+
+.session-item-unarchive:hover {
+  color: $success;
+  background: rgba($success, 0.1);
+}
+
+.session-item-archive:hover {
+  color: $accent-primary;
+}
+
 .session-list-title {
   font-size: 12px;
   font-weight: 600;
