@@ -1,5 +1,5 @@
 import { startRunViaSocket, resumeSession, registerSessionHandlers, unregisterSessionHandlers, getChatRunSocket, respondToolApproval, onPeerUserMessage, onSessionCommand, onSessionTitleUpdated, respondClarify, type RunEvent, type ResumeSessionPayload, type ContentBlock as ContentBlockImport } from '@/api/hermes/chat'
-import { deleteSession as deleteSessionApi, fetchSessionMessagesPage, fetchSessions, setSessionModel, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
+import { deleteSession as deleteSessionApi, archiveSession as archiveSessionApi, unarchiveSession as unarchiveSessionApi, fetchSessionMessagesPage, fetchSessions, setSessionModel, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
 import { getActiveProfileName } from '@/api/client'
 import { getDownloadUrl } from '@/api/hermes/download'
 import { defineStore } from 'pinia'
@@ -87,6 +87,7 @@ export interface Session {
   endedAt?: number | null
   lastActiveAt?: number
   workspace?: string | null
+  archived?: number
 }
 
 interface CompressionState {
@@ -845,6 +846,20 @@ export const useChatStore = defineStore('chat', () => {
         switchSession(session.id)
       }
     }
+  }
+
+  async function archiveSession(sessionId: string) {
+    const target = sessions.value.find(s => s.id === sessionId)
+    if (!target) return
+    await archiveSessionApi(sessionId, target?.profile)
+    target.archived = 1
+  }
+
+  async function unarchiveSession(sessionId: string) {
+    const target = sessions.value.find(s => s.id === sessionId)
+    if (!target) return
+    await unarchiveSessionApi(sessionId, target?.profile)
+    target.archived = 0
   }
 
   function getSessionMsgs(sessionId: string): Message[] {

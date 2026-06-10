@@ -7,6 +7,8 @@ import {
   getSessionDetail as localGetSessionDetail,
   deleteSession as localDeleteSession,
   renameSession as localRenameSession,
+  archiveSession as localArchiveSession,
+  unarchiveSession as localUnarchiveSession,
   createSession as localCreateSession,
   addMessages as localAddMessages,
   updateSession as localUpdateSession,
@@ -640,6 +642,30 @@ export async function rename(ctx: any) {
   if (!ok) {
     ctx.status = 500
     ctx.body = { error: 'Failed to rename session' }
+    return
+  }
+  ctx.body = { ok: true }
+}
+
+export async function archive(ctx: any) {
+  const existing = localGetSession(ctx.params.id)
+  if (denySessionAccess(ctx, existing)) return
+  const ok = localArchiveSession(ctx.params.id)
+  if (!ok) {
+    ctx.status = 500
+    ctx.body = { error: 'Failed to archive session' }
+    return
+  }
+  ctx.body = { ok: true }
+}
+
+export async function unarchive(ctx: any) {
+  const existing = localGetSession(ctx.params.id)
+  if (denySessionAccess(ctx, existing)) return
+  const ok = localUnarchiveSession(ctx.params.id)
+  if (!ok) {
+    ctx.status = 500
+    ctx.body = { error: 'Failed to unarchive session' }
     return
   }
   ctx.body = { ok: true }

@@ -152,6 +152,30 @@ export async function deleteSession(id: string, profile?: string | null): Promis
   }
 }
 
+export async function archiveSession(id: string, profile?: string | null): Promise<boolean> {
+  try {
+    const params = new URLSearchParams()
+    if (profile) params.set('profile', profile)
+    const query = params.toString()
+    await request(`/api/hermes/sessions/${id}/archive${query ? `?${query}` : ''}`, { method: 'POST' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function unarchiveSession(id: string, profile?: string | null): Promise<boolean> {
+  try {
+    const params = new URLSearchParams()
+    if (profile) params.set('profile', profile)
+    const query = params.toString()
+    await request(`/api/hermes/sessions/${id}/unarchive${query ? `?${query}` : ''}`, { method: 'POST' })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function importHermesSession(id: string, profile?: string | null): Promise<{ ok: boolean; imported: boolean; session?: SessionDetail }> {
   const params = new URLSearchParams()
   if (profile) params.set('profile', profile)

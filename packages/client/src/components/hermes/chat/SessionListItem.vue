@@ -26,6 +26,7 @@ const emit = defineEmits<{
   select: []
   contextmenu: [event: MouseEvent]
   delete: []
+  archive: []
   'toggle-select': []
 }>()
 
@@ -146,6 +147,9 @@ onUnmounted(() => {
         <span class="session-item-profile-name">{{ profileName }}</span>
       </span>
     </div>
+    <button v-if="!selectable" class="session-item-archive" @click.stop.prevent="emit('archive')" title="Archive">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    </button>
     <NPopconfirm v-if="canDelete && !selectable" @positive-click="emit('delete')">
       <template #trigger>
         <button class="session-item-delete" @click.stop.prevent>

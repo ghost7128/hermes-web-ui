@@ -32,6 +32,7 @@ export interface HermesSessionRow {
   preview: string
   last_active: number
   workspace: string | null
+  archived: number
 }
 
 export interface HermesMessageRow {
@@ -106,6 +107,7 @@ function mapSessionRow(row: Record<string, unknown>): HermesSessionRow {
     preview: String(row.preview || ''),
     last_active: Number(row.last_active || 0),
     workspace: row.workspace != null ? String(row.workspace) : null,
+    archived: row.archived != null ? Number(row.archived) : 0,
   }
 }
 
@@ -148,7 +150,7 @@ export function createSession(data: {
       message_count: 0, tool_call_count: 0,
       input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0, reasoning_tokens: 0,
       billing_provider: null, estimated_cost_usd: 0, actual_cost_usd: null,
-      cost_status: '', preview: '', last_active: now, workspace: data.workspace || null,
+      cost_status: '', preview: '', last_active: now, workspace: data.workspace || null, archived: 0,
     }
   }
   const db = getDb()!
@@ -220,7 +222,21 @@ export function renameSession(id: string, title: string): boolean {
   return result.changes > 0
 }
 
-export function listSessions(profile?: string, source?: string, limit = 2000): HermesSessionRow[] {
+export function archiveSession(id: string): boolean {
+  if (!isSqliteAvailable()) return false
+  const db = getDb()!
+  const result = db.prepare(`UPDATE ${SESSIONS_TABLE} SET archived = 1 WHERE id = ?`).run(id)
+  return result.changes > 0
+}
+
+export function unarchiveSession(id: string): boolean {
+  if (!isSqliteAvailable()) return false
+  const db = getDb()!
+  const result = db.prepare(`UPDATE ${SESSIONS_TABLE} SET archived = 0 WHERE id = ?`).run(id)
+  return result.changes > 0
+}
+
+export function listSessions(profile?: string, source?: string, limit = 2000, includeArchived = false): HermesSessionRow[] {
   if (!isSqliteAvailable()) return []
   const db = getDb()!
   const profileFilter = profile?.trim()
@@ -244,6 +260,7 @@ export function listSessions(profile?: string, source?: string, limit = 2000): H
     WHERE 1 = 1
       ${profileFilter ? 'AND s.profile = ?' : ''}
       ${source ? 'AND s.source = ?' : ''}
+      ${includeArchived ? '' : 'AND s.archived = 0'}
     ORDER BY s.last_active DESC
     LIMIT ?
   `
@@ -277,6 +294,7 @@ export function searchSessions(profile: string | null | undefined, query: string
     `SELECT * FROM ${SESSIONS_TABLE}
      WHERE 1 = 1
        ${profileFilter ? 'AND profile = ?' : ''}
+       AND archived = 0
        AND (
        LOWER(title) LIKE ? OR LOWER(preview) LIKE ?
        OR id IN (SELECT DISTINCT session_id FROM ${MESSAGES_TABLE} WHERE LOWER(content) LIKE ? OR LOWER(COALESCE(tool_name, '')) LIKE ?)
