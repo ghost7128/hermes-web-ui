@@ -201,4 +201,27 @@ onUnmounted(() => {
   line-height: 14px;
   cursor: pointer;
 }
+
+.session-item-archive,
+.session-item-unarchive {
+  flex-shrink: 0;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.session-item:hover .session-item-archive,
+.session-item:hover .session-item-unarchive {
+  opacity: 0.5;
+}
+
+.session-item-archive:hover,
+.session-item-unarchive:hover {
+  opacity: 1 !important;
+}
 </style>
