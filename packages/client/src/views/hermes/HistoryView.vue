@@ -608,6 +608,14 @@ async function handleDeleteSession(id: string, profile?: string | null) {
 async function handleArchiveSession(id: string, profile?: string | null) {
   const ok = await archiveSessionApi(id, profile)
   if (ok) {
+    hermesSessions.value = hermesSessions.value.filter(s => s.id !== id)
+    if (historySessionId.value === id) {
+      historySessionId.value = null
+      historySession.value = null
+      const next = historySessions.value[0]
+      if (next) await handleSessionClick(next.id, next.profile)
+      else await router.replace({ name: 'hermes.history' })
+    }
     message.success(t('chat.sessionArchived'))
   } else {
     message.error(t('common.actionFailed'))

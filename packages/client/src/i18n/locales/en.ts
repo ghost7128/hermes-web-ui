@@ -414,6 +414,8 @@ export default {
     newCliChat: 'New CLI',
     deleteSession: 'Delete this session?',
     sessionDeleted: 'Session deleted',
+    sessionArchived: 'Session archived',
+    archiveSession: 'Archive this session',
     toggleBatchMode: 'Batch selection',
     selectAll: 'Select all',
     confirmBatchDelete: 'Delete {count} selected sessions?',

@@ -852,7 +852,15 @@ export const useChatStore = defineStore('chat', () => {
     const target = sessions.value.find(s => s.id === sessionId)
     if (!target) return
     await archiveSessionApi(sessionId, target?.profile)
-    target.archived = 1
+    sessions.value = sessions.value.filter(s => s.id !== sessionId)
+    if (activeSessionId.value === sessionId) {
+      if (sessions.value.length > 0) {
+        await switchSession(sessions.value[0].id)
+      } else {
+        const session = createSession()
+        switchSession(session.id)
+      }
+    }
   }
 
   async function unarchiveSession(sessionId: string) {
