@@ -59,11 +59,12 @@ export interface HermesMessage {
   reasoning: string | null
 }
 
-export async function fetchSessions(source?: string, limit?: number, profile?: string): Promise<SessionSummary[]> {
+export async function fetchSessions(source?: string, limit?: number, profile?: string, includeArchived?: boolean): Promise<SessionSummary[]> {
   const params = new URLSearchParams()
   if (source) params.set('source', source)
   if (limit) params.set('limit', String(limit))
   if (profile) params.set('profile', profile)
+  if (includeArchived) params.set('includeArchived', '1')
   const query = params.toString()
   const res = await request<{ sessions: SessionSummary[] }>(`/api/hermes/sessions${query ? `?${query}` : ''}`)
   return res.sessions

@@ -12,7 +12,7 @@ import { copyToClipboard } from '@/utils/clipboard'
 import HistoryMessageList from '@/components/hermes/chat/HistoryMessageList.vue'
 import SessionListItem from '@/components/hermes/chat/SessionListItem.vue'
 import OutlinePanel from '@/components/hermes/chat/OutlinePanel.vue'
-import { batchDeleteSessions, deleteSession, archiveSession as archiveSessionApi, fetchHermesSessions, fetchHermesSession, fetchSessionMessagesPage, importHermesSession, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
+import { batchDeleteSessions, deleteSession, archiveSession as archiveSessionApi, unarchiveSession as unarchiveSessionApi, fetchSessions, fetchHermesSessions, fetchHermesSession, fetchSessionMessagesPage, importHermesSession, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
 
 const appStore = useAppStore()
 const profilesStore = useProfilesStore()
@@ -38,6 +38,10 @@ const effectiveHistoryProfile = computed(() => profilesStore.activeProfileName |
 const hermesSessions = ref<SessionSummary[]>([])
 const hermesSessionsLoading = ref(false)
 const hermesSessionsLoaded = ref(false)
+// Archived sessions from local store
+const archivedSessions = ref<SessionSummary[]>([])
+const showArchived = ref(false)
+const archivedSessionsLoading = ref(false)
 // History page's own selected session (independent from chatStore)
 const historySessionId = ref<string | null>(null)
 const historySession = ref<Session | null>(null)
@@ -72,6 +76,21 @@ async function loadHermesSessions() {
   } finally {
     if (requestId === hermesSessionsRequestId) {
       hermesSessionsLoading.value = false
+    }
+  }
+}
+
+async function toggleArchivedView() {
+  showArchived.value = !showArchived.value
+  if (showArchived.value && archivedSessions.value.length === 0) {
+    archivedSessionsLoading.value = true
+    try {
+      const sessions = await fetchSessions(undefined, 200, undefined, true)
+      archivedSessions.value = sessions.filter(s => (s as any).archived === 1)
+    } catch (err) {
+      console.error('Failed to load archived sessions:', err)
+    } finally {
+      archivedSessionsLoading.value = false
     }
   }
 }
@@ -609,6 +628,7 @@ async function handleArchiveSession(id: string, profile?: string | null) {
   const ok = await archiveSessionApi(id, profile)
   if (ok) {
     hermesSessions.value = hermesSessions.value.filter(s => s.id !== id)
+    archivedSessions.value = archivedSessions.value.filter(s => s.id !== id)
     if (historySessionId.value === id) {
       historySessionId.value = null
       historySession.value = null
@@ -617,6 +637,18 @@ async function handleArchiveSession(id: string, profile?: string | null) {
       else await router.replace({ name: 'hermes.history' })
     }
     message.success(t('chat.sessionArchived'))
+  } else {
+    message.error(t('common.actionFailed'))
+  }
+}
+
+async function handleUnarchiveSession(id: string, profile?: string | null) {
+  const ok = await unarchiveSessionApi(id, profile)
+  if (ok) {
+    archivedSessions.value = archivedSessions.value.filter(s => s.id !== id)
+    message.success(t('chat.sessionRestored'))
+    // Reload main session list if archived view is toggled off
+    if (!showArchived.value) await loadHermesSessions()
   } else {
     message.error(t('common.actionFailed'))
   }
@@ -716,6 +748,11 @@ function handleBatchDeleteConfirm() {
               </svg>
             </template>
           </NButton>
+          <NButton quaternary size="tiny" :type="showArchived ? 'primary' : 'default'" :loading="archivedSessionsLoading" @click="toggleArchivedView">
+            <template #icon>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+            </template>
+          </NButton>
           <NPopconfirm
             v-if="isBatchMode && selectedCount > 0"
             v-model:show="showBatchDeleteConfirm"
@@ -804,6 +841,25 @@ function handleBatchDeleteConfirm() {
               @toggle-select="toggleSessionSelection(s)"
             />
           </template>
+        </template>
+        <template v-if="showArchived && archivedSessions.length > 0">
+          <div class="session-group-header">
+            <span class="session-group-label">{{ t('chat.archivedSessions') }}</span>
+            <span class="session-group-count">{{ archivedSessions.length }}</span>
+          </div>
+          <SessionListItem
+            v-for="s in archivedSessions"
+            :key="s.id"
+            :session="s"
+            :active="s.id === historySessionId"
+            :pinned="false"
+            :can-delete="false"
+            :streaming="false"
+            :show-profile="false"
+            @select="handleSessionClick(s.id, s.profile)"
+            @contextmenu="handleContextMenu($event, s.id)"
+            @unarchive="handleUnarchiveSession(s.id, s.profile)"
+          />
         </template>
       </div>
     </aside>

@@ -419,6 +419,7 @@ export const useChatStore = defineStore('chat', () => {
   /** sessionId → server-reported isWorking status */
   const serverWorking = ref<Set<string>>(new Set())
   const sessionProfileFilter = ref<string | null>(null)
+  const showArchived = ref(false)
   /** sessionId → queued message count */
   const queueLengths = ref<Map<string, number>>(new Map())
   /** sessionId → queued user messages not yet visible in the transcript */
@@ -502,7 +503,7 @@ export const useChatStore = defineStore('chat', () => {
   async function loadSessions(profile?: string | null, preferredSessionId?: string | null) {
     isLoadingSessions.value = true
     try {
-      const list = await fetchSessions(undefined, undefined, profile || undefined)
+      const list = await fetchSessions(undefined, undefined, profile || undefined, showArchived.value)
       const fresh = list.map(mapHermesSession)
       // Preserve already-loaded messages for sessions that are still present,
       // so we don't blow away the active session's messages on refresh.
@@ -2788,6 +2789,7 @@ export const useChatStore = defineStore('chat', () => {
     isRunActive,
     isSessionLive,
     sessionProfileFilter,
+    showArchived,
     compressionState,
     abortState,
     isAborting,

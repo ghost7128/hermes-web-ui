@@ -250,7 +250,8 @@ export async function listConversations(ctx: any) {
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
 
   const profile = explicitProfileFilter(ctx)
-  const sessions = localListSessions(profile, source, limit && limit > 0 ? limit : 200)
+  const includeArchived = ctx.query.includeArchived === '1'
+  const sessions = localListSessions(profile, source, limit && limit > 0 ? limit : 200, includeArchived)
   const summaries: ConversationSummary[] = sessions.map(s => ({
     id: s.id,
     profile: s.profile || null,
@@ -316,8 +317,9 @@ export async function list(ctx: any) {
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
   const profile = explicitProfileFilter(ctx)
   const effectiveLimit = limit && limit > 0 ? limit : 2000
+  const includeArchived = ctx.query.includeArchived === '1'
 
-  const allSessions = localListSessions(profile, source, effectiveLimit)
+  const allSessions = localListSessions(profile, source, effectiveLimit, includeArchived)
   const knownProfiles = profile ? null : new Set(listProfileNamesFromDisk())
   ctx.body = {
     sessions: filterPendingDeletedSessions(filterByAllowedProfiles(ctx, allSessions).filter(s =>
