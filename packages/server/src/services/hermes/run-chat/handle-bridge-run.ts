@@ -31,6 +31,7 @@ import type { ChatMessage } from '../../../lib/context-compressor'
 import { resolveBridgeRunModelConfig, type RunModelGroup } from './model-config'
 import { filterBridgeToolCallMarkupDelta, flushPendingToolCallMarkup } from './bridge-delta'
 import { markAbortCompleted } from './abort'
+import { autoGenerateSessionTitle } from './session-titler'
 
 const BRIDGE_USAGE_FLUSH_DELAY_MS = 200
 const BRIDGE_TITLE_EVENT_POLL_INTERVAL_MS = 500
@@ -1204,6 +1205,11 @@ async function applyBridgeChunkAsync(
     queue_remaining: state.queue.length,
   }
   emit(eventName, payload)
+
+  // Auto-generate title after first successful response
+  if (!terminalError) {
+    autoGenerateSessionTitle(sessionId, profile, (event, payload) => emit(event, payload)).catch(() => {})
+  }
 
   if (!terminalError) {
     await maybeEnqueueGoalContinuation({

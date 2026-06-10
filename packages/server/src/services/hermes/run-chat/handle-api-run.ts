@@ -25,6 +25,7 @@ import { countTokens, SUMMARY_PREFIX } from '../../../lib/context-compressor'
 import { getCompressionSnapshot } from '../../../db/hermes/compression-snapshot'
 import type { ContentBlock, SessionState, ChatRunSource } from './types'
 import { config } from "../../../config"
+import { autoGenerateSessionTitle } from './session-titler'
 
 export function resolveRunSource(_source?: string, _sessionId?: string): ChatRunSource {
   return 'cli'
@@ -338,6 +339,10 @@ export async function handleApiRun(
           error: finalOutput.error || parsed.error,
           queue_remaining: queueLen,
         })
+        // Auto-generate title after first successful response
+        if (eventName === 'run.completed' && session_id) {
+          autoGenerateSessionTitle(session_id, profile, (event, payload) => emit(event, payload)).catch(() => {})
+        }
         if (session_id && queueLen > 0) dequeueNextQueuedRun(socket, session_id)
         return
       }
