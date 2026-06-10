@@ -1906,6 +1906,23 @@ async function handleSessionModelCustomSubmit() {
   }
 }
 
+:deep(.session-item-unarchive) {
+  flex-shrink: 0;
+  opacity: 0.5;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: $text-muted;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $success;
+    background: rgba($success, 0.1);
+  }
+}
+
 .chat-main {
   flex: 1;
   display: flex;

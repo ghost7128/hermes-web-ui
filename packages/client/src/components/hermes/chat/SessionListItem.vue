@@ -148,8 +148,8 @@ onUnmounted(() => {
         <span class="session-item-profile-name">{{ profileName }}</span>
       </span>
     </div>
-    <button v-if="!selectable && session.archived" class="session-item-archive" @click.stop.prevent="emit('unarchive')" :title="t('chat.unarchiveSession')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 8 1 21 23 21 23 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    <button v-if="!selectable && session.archived" class="session-item-unarchive" @click.stop.prevent="emit('unarchive')" :title="t('chat.unarchiveSession')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
     </button>
     <button v-else-if="!selectable && !session.archived" class="session-item-archive" @click.stop.prevent="emit('archive')" :title="t('chat.archiveSession')">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>

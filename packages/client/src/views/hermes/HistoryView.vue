@@ -752,11 +752,9 @@ function handleBatchDeleteConfirm() {
               </svg>
             </template>
           </NButton>
-          <NButton quaternary size="tiny" :type="showArchived ? 'primary' : 'default'" :loading="archivedSessionsLoading" @click="toggleArchivedView">
-            <template #icon>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-            </template>
-          </NButton>
+          <button class="session-archive-toggle" :class="{ active: showArchived }" :disabled="archivedSessionsLoading" @click="toggleArchivedView" :title="t('chat.showArchived')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </button>
           <NPopconfirm
             v-if="isBatchMode && selectedCount > 0"
             v-model:show="showBatchDeleteConfirm"
@@ -1036,6 +1034,33 @@ function handleBatchDeleteConfirm() {
 
   &:hover {
     background: rgba($accent-primary, 0.06);
+  }
+}
+
+.session-archive-toggle {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: $text-secondary;
+  padding: 4px;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.06);
+  }
+
+  &.active {
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
