@@ -414,6 +414,8 @@ export default {
     newCliChat: '新建 CLI',
     deleteSession: '确定删除此会话？',
     sessionDeleted: '会话已删除',
+    sessionArchived: '会话已归档',
+    archiveSession: '归档此会话',
     toggleBatchMode: '批量选择',
     selectAll: '全选',
     confirmBatchDelete: '确定删除选中的 {count} 个会话？',
