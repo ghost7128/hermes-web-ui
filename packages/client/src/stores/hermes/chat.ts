@@ -2801,6 +2801,8 @@ export const useChatStore = defineStore('chat', () => {
     addOrUpdateSession,
     clearProviderFromSessions,
     deleteSession,
+    archiveSession,
+    unarchiveSession,
     sendMessage,
     stopStreaming,
     respondApproval,
