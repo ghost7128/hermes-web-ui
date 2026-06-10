@@ -95,6 +95,10 @@ async function toggleArchivedView() {
   }
 }
 
+function mapArchivedSession(s: SessionSummary): any {
+  return { ...s, messages: [], createdAt: 0, updatedAt: 0 }
+}
+
 // Initialize synchronously from the media query so first paint is correct.
 const showSessions = ref(
   typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches,
@@ -850,7 +854,7 @@ function handleBatchDeleteConfirm() {
           <SessionListItem
             v-for="s in archivedSessions"
             :key="s.id"
-            :session="s"
+            :session="mapArchivedSession(s)"
             :active="s.id === historySessionId"
             :pinned="false"
             :can-delete="false"
