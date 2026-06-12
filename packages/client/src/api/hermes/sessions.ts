@@ -63,11 +63,12 @@ export interface HermesMessage {
   reasoning: string | null
 }
 
-export async function fetchSessions(source?: string, limit?: number, profile?: string): Promise<SessionSummary[]> {
+export async function fetchSessions(source?: string, limit?: number, profile?: string, includeArchived?: boolean): Promise<SessionSummary[]> {
   const params = new URLSearchParams()
   if (source) params.set('source', source)
   if (limit) params.set('limit', String(limit))
   if (profile) params.set('profile', profile)
+  if (includeArchived) params.set('includeArchived', '1')
   const query = params.toString()
   const res = await request<{ sessions: SessionSummary[] }>(`/api/hermes/sessions${query ? `?${query}` : ''}`)
   return res.sessions
@@ -150,6 +151,30 @@ export async function deleteSession(id: string, profile?: string | null): Promis
     if (profile) params.set('profile', profile)
     const query = params.toString()
     await request(`/api/hermes/sessions/${id}${query ? `?${query}` : ''}`, { method: 'DELETE' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function archiveSession(id: string, profile?: string | null): Promise<boolean> {
+  try {
+    const params = new URLSearchParams()
+    if (profile) params.set('profile', profile)
+    const query = params.toString()
+    await request(`/api/hermes/sessions/${id}/archive${query ? `?${query}` : ''}`, { method: 'POST' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function unarchiveSession(id: string, profile?: string | null): Promise<boolean> {
+  try {
+    const params = new URLSearchParams()
+    if (profile) params.set('profile', profile)
+    const query = params.toString()
+    await request(`/api/hermes/sessions/${id}/unarchive${query ? `?${query}` : ''}`, { method: 'POST' })
     return true
   } catch {
     return false

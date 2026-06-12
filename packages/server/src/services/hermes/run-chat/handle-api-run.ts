@@ -24,6 +24,8 @@ import { handleMessage } from './message-format'
 import { countTokens, SUMMARY_PREFIX } from '../../../lib/context-compressor'
 import { getCompressionSnapshot } from '../../../db/hermes/compression-snapshot'
 import type { ContentBlock, SessionState, ChatRunSource } from './types'
+import { config } from "../../../config"
+import { autoGenerateSessionTitle } from './session-titler'
 
 export function resolveRunSource(source?: string, sessionId?: string): ChatRunSource {
   if (source === 'api_server' || source === 'cli' || source === 'coding_agent') return source
@@ -114,8 +116,8 @@ export async function handleApiRun(
     }
   }
 
-  const upstream = ''
-  const apiKey = undefined
+  const upstream = config.gatewayHost
+  const apiKey = config.apiServerKey || undefined
 
   const runMarker = session_id
     ? `resp_run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
@@ -343,6 +345,10 @@ export async function handleApiRun(
           error: finalOutput.error || parsed.error,
           queue_remaining: queueLen,
         })
+        // Auto-generate title after first successful response
+        if (eventName === 'run.completed' && session_id) {
+          autoGenerateSessionTitle(session_id, profile, (event, payload) => emit(event, payload)).catch(() => {})
+        }
         if (session_id && queueLen > 0) dequeueNextQueuedRun(socket, session_id)
         return
       }
