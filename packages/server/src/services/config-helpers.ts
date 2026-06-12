@@ -42,7 +42,7 @@ export const PROVIDER_ENV_MAP: Record<string, { api_key_env: string; base_url_en
   nous: { api_key_env: '', base_url_env: '' },
   'openai-codex': { api_key_env: '', base_url_env: '' },
   'openai-api': { api_key_env: 'OPENAI_API_KEY', base_url_env: 'OPENAI_BASE_URL' },
-  copilot: { api_key_env: 'GITHUB_TOKEN', base_url_env: '' },
+  copilot: { api_key_env: '', base_url_env: '' },
   longcat: { api_key_env: 'LONGCAT_API_KEY', base_url_env: 'LONGCAT_BASE_URL' },
   'tencent-tokenhub': { api_key_env: 'TENCENT_TOKENHUB_API_KEY', base_url_env: 'TOKENHUB_BASE_URL' },
 }
