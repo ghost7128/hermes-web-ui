@@ -18,6 +18,7 @@ import { convertHistoryFormat } from './message-format'
 import { readSseFrames } from './sse-utils'
 import { extractResponseText } from './response-utils'
 import { applyResponseStreamEvent, flushResponseRunToDb } from './response-stream'
+import { config } from '../../../config'
 import { buildCompressedHistory, buildDbHistory, buildSnapshotAwareHistory, getOrCreateSession } from './compression'
 import { calcAndUpdateUsage, estimateUsageTokensFromMessages } from './usage'
 import { handleMessage } from './message-format'
@@ -114,8 +115,8 @@ export async function handleApiRun(
     }
   }
 
-  const upstream = ''
-  const apiKey = undefined
+  const upstream = config.gatewayHost
+  const apiKey = config.apiServerKey || undefined
 
   const runMarker = session_id
     ? `resp_run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`

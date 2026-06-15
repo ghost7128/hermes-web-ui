@@ -25,6 +25,9 @@ import { homedir } from 'os'
  * - GATEWAY_HOST: Default Hermes gateway upstream host. Default: 127.0.0.1.
  * - GATEWAY_PORT: Default Hermes gateway upstream port. Default: 8642.
  * - HERMES_WEB_UI_MANAGED_GATEWAY: Web UI-managed Hermes gateway handling. Enabled by default; set 0/false/off to use CLI start.
+ * - HERMES_WEB_UI_EXTERNAL_GATEWAY: Set 1 to connect to an external Hermes API server instead of spawning a managed gateway. Mutually exclusive with MANAGED_GATEWAY.
+ * - GATEWAY_HOST: External Hermes API server URL (e.g., http://192.168.50.29:8080). Used when EXTERNAL_GATEWAY=1.
+ * - API_SERVER_KEY: API key for authenticating with the external gateway. Used when EXTERNAL_GATEWAY=1.
  * - HERMES_WEB_UI_STOP_GATEWAYS_ON_SHUTDOWN: Whether Web UI shutdown also stops managed gateways.
  * - HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT: Disable Hermes Studio MCP config injection.
  * - HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT: Allow MCP injection when HERMES_WEB_UI_HOME is under a temp dir.
@@ -67,4 +70,7 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR || join(appHome, 'upload'),
   dataDir: resolve(__dirname, '..', 'data'),
   corsOrigins: getCorsOrigins(),
+  externalGateway: process.env.HERMES_WEB_UI_EXTERNAL_GATEWAY === '1',
+  gatewayHost: process.env.GATEWAY_HOST || '',
+  apiServerKey: process.env.API_SERVER_KEY || '',
 }

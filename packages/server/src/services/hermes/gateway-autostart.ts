@@ -4,6 +4,7 @@ import { join } from 'path'
 import { promisify } from 'util'
 import { readAppConfig, type GatewayAutoStartConfig } from '../app-config'
 import { logger } from '../logger'
+import { config } from '../../config'
 import { getProfileDir, listProfileNamesFromDisk } from './hermes-profile'
 import { startGatewayRunManaged } from './gateway-runner'
 import { parseGatewayStatusesFromProfileList } from './profile-list-parser'
@@ -232,6 +233,7 @@ async function recoverWindowsDesktopGatewayOrphansOnce(): Promise<void> {
 }
 
 export function shouldUseManagedGatewayRun(): boolean {
+  if (config.externalGateway) return false
   return !envFlagDisabled('HERMES_WEB_UI_MANAGED_GATEWAY')
 }
 
@@ -427,6 +429,10 @@ export async function restartGatewayForProfile(profile: string): Promise<{ runni
 }
 
 export async function ensureProfileGatewaysRunning(): Promise<void> {
+  if (config.externalGateway) {
+    logger.info('[gateway-autostart] external gateway mode — skipping autostart')
+    return
+  }
   await recoverWindowsDesktopGatewayOrphansOnce()
 
   const hermesBin = resolveHermesBin()
