@@ -3,6 +3,7 @@ import { promisify } from 'util'
 import { logger } from '../logger'
 import { getActiveProfileDir } from './hermes-profile'
 import { spawnHermesWithBin } from './hermes-process'
+import { config } from '../../config'
 
 interface SupervisedGateway {
   pid: number
@@ -179,6 +180,10 @@ export function startGatewayRunManaged(
   hermesBin: string,
   opts: { profileDir?: string } = {},
 ): { pid: number | null; reused: boolean } {
+  if (config.externalGateway) {
+    logger.info('[gateway-runner] external gateway mode — skipping managed start')
+    return { pid: null, reused: false }
+  }
   return startGatewayRunManagedInternal(hermesBin, {
     profileDir: opts.profileDir,
     preserveRespawnAttempts: false,
