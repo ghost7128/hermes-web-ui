@@ -27,6 +27,8 @@ const emit = defineEmits<{
   select: []
   contextmenu: [event: MouseEvent]
   delete: []
+  archive: []
+  unarchive: []
   'toggle-select': []
 }>()
 
@@ -159,6 +161,12 @@ onUnmounted(() => {
         </span>
       </span>
     </div>
+    <button v-if="!selectable && session.archived" class="session-item-unarchive" @click.stop.prevent="emit('unarchive')" :title="t('chat.unarchiveSession')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+    </button>
+    <button v-else-if="!selectable && !session.archived" class="session-item-archive" @click.stop.prevent="emit('archive')" :title="t('chat.archiveSession')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    </button>
     <NPopconfirm v-if="canDelete && !selectable" @positive-click="emit('delete')">
       <template #trigger>
         <button class="session-item-delete" @click.stop.prevent>
@@ -431,5 +439,28 @@ onUnmounted(() => {
       0 0 10px rgba(255, 107, 107, 0.4),
       0 0 20px rgba(255, 107, 107, 0.2);
   }
+}
+
+.session-item-archive,
+.session-item-unarchive {
+  flex-shrink: 0;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.session-item:hover .session-item-archive,
+.session-item:hover .session-item-unarchive {
+  opacity: 0.5;
+}
+
+.session-item-archive:hover,
+.session-item-unarchive:hover {
+  opacity: 1 !important;
 }
 </style>

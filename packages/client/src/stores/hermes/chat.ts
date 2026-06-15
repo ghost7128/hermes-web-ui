@@ -1,5 +1,5 @@
 import { startRunViaSocket, resumeSession, registerSessionHandlers, unregisterSessionHandlers, getChatRunSocket, respondToolApproval, onPeerUserMessage, onSessionCommand, onSessionTitleUpdated, respondClarify, type RunEvent, type ResumeSessionPayload, type StartRunRequest, type ContentBlock as ContentBlockImport } from '@/api/hermes/chat'
-import { deleteSession as deleteSessionApi, fetchSessionMessagesPage, fetchSessions, setSessionModel, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
+import { deleteSession as deleteSessionApi, archiveSession as archiveSessionApi, unarchiveSession as unarchiveSessionApi, fetchSessionMessagesPage, fetchSessions, setSessionModel, type HermesMessage, type SessionSummary } from '@/api/hermes/sessions'
 import { getActiveProfileName } from '@/api/client'
 import { getDownloadUrl } from '@/api/hermes/download'
 import { defineStore } from 'pinia'
@@ -106,6 +106,7 @@ export interface Session {
    * Empty string / undefined = use config.yaml default.
    * Values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' */
   reasoningEffort?: string
+  archived?: number
 }
 
 interface CompressionState {
@@ -560,6 +561,7 @@ export const useChatStore = defineStore('chat', () => {
   /** Sessions that completed while the user was viewing another session. */
   const completedUnreadSessions = ref<Set<string>>(new Set())
   const sessionProfileFilter = ref<string | null>(null)
+  const showArchived = ref(false)
   /** sessionId → queued message count */
   const queueLengths = ref<Map<string, number>>(new Map())
   /** sessionId → queued user messages not yet visible in the transcript */
@@ -672,7 +674,7 @@ export const useChatStore = defineStore('chat', () => {
   async function loadSessions(profile?: string | null, preferredSessionId?: string | null) {
     isLoadingSessions.value = true
     try {
-      const list = await fetchSessions(undefined, undefined, profile || undefined)
+      const list = await fetchSessions(undefined, undefined, profile || undefined, showArchived.value)
       const fresh = list.map(mapHermesSession)
       // Preserve already-loaded messages for sessions that are still present,
       // so we don't blow away the active session's messages on refresh.
@@ -1145,6 +1147,28 @@ export const useChatStore = defineStore('chat', () => {
       }
     }
     return true
+  }
+
+  async function archiveSession(sessionId: string) {
+    const target = sessions.value.find(s => s.id === sessionId)
+    if (!target) return
+    await archiveSessionApi(sessionId, target?.profile)
+    sessions.value = sessions.value.filter(s => s.id !== sessionId)
+    if (activeSessionId.value === sessionId) {
+      if (sessions.value.length > 0) {
+        await switchSession(sessions.value[0].id)
+      } else {
+        const session = createSession()
+        switchSession(session.id)
+      }
+    }
+  }
+
+  async function unarchiveSession(sessionId: string) {
+    const target = sessions.value.find(s => s.id === sessionId)
+    if (!target) return
+    await unarchiveSessionApi(sessionId, target?.profile)
+    target.archived = 0
   }
 
   function getSessionMsgs(sessionId: string): Message[] {
@@ -3346,6 +3370,7 @@ export const useChatStore = defineStore('chat', () => {
     isSessionCompletedUnread,
     clearSessionCompletedUnread,
     sessionProfileFilter,
+    showArchived,
     compressionState,
     abortState,
     isAborting,
@@ -3367,6 +3392,8 @@ export const useChatStore = defineStore('chat', () => {
     addOrUpdateSession,
     clearProviderFromSessions,
     deleteSession,
+    archiveSession,
+    unarchiveSession,
     sendMessage,
     stopStreaming,
     respondApproval,

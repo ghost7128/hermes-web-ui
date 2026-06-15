@@ -561,6 +561,11 @@ async function handleDeleteSession(id: string) {
   message.success(t("chat.sessionDeleted"));
 }
 
+function handleArchiveSession(id: string) {
+  chatStore.archiveSession(id);
+  message.success(t("chat.sessionArchived"));
+}
+
 function toggleBatchMode() {
   if (isBatchDeleting.value) return;
   isBatchMode.value = !isBatchMode.value;
@@ -1145,6 +1150,7 @@ async function handleSessionModelCustomSubmit() {
             @select="handleSessionClick(s.id)"
             @contextmenu="handleContextMenu($event, s.id)"
             @delete="handleDeleteSession(s.id)"
+            @archive="handleArchiveSession(s.id)"
             @toggle-select="toggleSessionSelection(s)"
           />
         </template>
@@ -1168,6 +1174,7 @@ async function handleSessionModelCustomSubmit() {
           @select="handleSessionClick(s.id)"
           @contextmenu="handleContextMenu($event, s.id)"
           @delete="handleDeleteSession(s.id)"
+          @archive="handleArchiveSession(s.id)"
           @toggle-select="toggleSessionSelection(s)"
         />
       </div>
@@ -2563,6 +2570,39 @@ async function handleSessionModelCustomSubmit() {
   text-align: center;
 }
 
+:deep(.session-item-archive) {
+  flex-shrink: 0;
+  opacity: 0.5;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: $text-muted;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.1);
+  }
+}
+
+:deep(.session-item-unarchive) {
+  flex-shrink: 0;
+  opacity: 0.5;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: $text-muted;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $success;
+    background: rgba($success, 0.1);
+  }
+}
 .chat-main {
   flex: 1;
   display: flex;
