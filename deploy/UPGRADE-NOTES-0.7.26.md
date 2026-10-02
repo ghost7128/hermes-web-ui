@@ -103,8 +103,11 @@ HTTP 200（首次即通），`client dist OK`，copilot patch 在产物中 ✓�
 ### 0.7.26 新增的 gateway 门槛（本次最大的隐藏坑）
 
 - 服务端 `e0e()` 第一句即 `if (t?.enabled !== true) return`，开关是 Studio 的
-  `gatewayAutoStart`（存 `~/.hermes-web-ui/settings.json`，未创建时默认**关闭**，形状
-  `{enabled, include?, exclude?}`）。叠加老毛病：`gateway_state.json` 记
+  `gatewayAutoStart`，实际写在 **`/home/agent/.hermes-web-ui/config.json`**
+  （服务端 `UCe = ue.appHome`；未设置时默认**关闭**，形状 `{enabled, include?, exclude?}`）。
+  ⚠️ 两个同名文件是陷阱：`~/.hermes/webui/settings.json` 是**前端 UI 偏好**（主题/布局，
+  服务端不读），`~/.hermes-web-ui/settings.json` 在本部署**不存在**。
+  叠加老毛病：`gateway_state.json` 记
   `desired_state=running` + 已随旧容器消失的 pid 111 → 启动恢复判定「已在跑」→ 跳过。
 - 症状：三个 profile 的 gateway 全未启动，`hermesa/cron/ticker_heartbeat` 卡在 08:14:30，
   平台 bot / webhook 全挂。
@@ -140,7 +143,11 @@ midclt call -job app.start hui
 
 ## 遗留（需要用户动作）
 
-1. **微信出站**：先给 bot 发一条消息，iLink 会话才恢复（否则所有 `hermes send` 失败）。
-2. **Studio 设置里开启 Gateway 自动启动**：不打开的话，下次容器重启网关不会自起，
-   得手工 `hermes gateway run --replace`。（写 settings.json 后服务端有内存缓存，需重启才生效，
-   所以走 UI 开关更省事。）
+1. ~~微信出站~~ **已完成**：用户给 bot 发消息后 iLink 会话恢复，实测
+   `hermes send --to weixin` → `Sent to weixin home channel (chat_id: o9cq808gY0-7XI-PmLosd-ZVkbhE@im.wechat)`。
+2. ~~Gateway 自动启动~~ **已完成**：用户在 Studio 里打开开关后，
+   `/home/agent/.hermes-web-ui/config.json` 于 `2026-10-02 11:36:16` 写入
+   `{"gatewayAutoStart":{"enabled":true}}`。无 include/exclude → 三个 profile 全覆盖，
+   静态判定 `e0e()` 首道门（`enabled === true`）通过。
+   真正的验证点在下次容器重启（届时 Studio 应自行拉起宿主网关，不再需要手工
+   `hermes gateway run --replace`）。
