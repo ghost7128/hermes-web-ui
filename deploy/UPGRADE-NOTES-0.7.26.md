@@ -77,18 +77,58 @@ hermes-web-ui v0.7.26 starting...
 ```
 HTTP 200（首次即通），`client dist OK`，copilot patch 在产物中 ✓。
 
-## 切换 / 回滚（`redeploy-verify-0.7.26.sh`）
+## 切换实跑（2026-10-02 08:14–08:22）
 
-`bash /tmp/redeploy-verify-0.7.26.sh [延迟秒]`，宿主 root，`setsid nohup` 脱离 ssh 会话。
-流程：DB 备份（Studio DB + hermesa/state.db）→ `midclt call -job app.stop hui` → retag
-`latest → v0.7.26` → `app.start` → 等容器换代 → 就绪 + 版本轮询 → 失败自动回滚 v0.7.24
-→ TDAI/gateway/DB 检查 → 结果写
-`/mnt/NetDisk/hermes-webui-data/upgrade-0.7.26-result.txt` → 微信通报。
+**结论：切换成功，但 v1 脚本误报失败。**
 
-相对 0.7.24 版脚本的两处修正（skill 已记录的两坑）：
-1. `midclt call -job app.stop/start` —— 等 job 完成，不再抢跑；
-2. 版本检查改为「等容器 `Created` 晚于脚本启动时间」+ 镜像 ID 比对 ——
-   消灭上次那个把旧容器读成新版本而误报 `VERSION_MISMATCH` 的竞态。
+实测事实：
+- 容器换代成功：`ix-hui-hermes-webui-1` → `83d0c531bab4`，image `82d51761d309` = v0.7.26，
+  Created `2026-10-02T00:15:26Z`，RestartCount 0 → **从未回滚**。
+- core：`Hermes Agent v0.21.5 (2026.9.24) · upstream f97608f1`。
+- Studio DB：切前 `112/36054/2` → 切后 `112/36062/2`（sessions/messages/users），数据零丢失。
+- TDAI provider `available: true`；TDAI gateway `vectorStore:true, embeddingService:true`。
+
+### v1 脚本的三个 bug（`redeploy-verify-0.7.26.sh`，已被 `redeploy-verify.sh` v2 取代）
+
+1. **时区陷阱 → 假「未换代」→ 假回滚**：`docker inspect .Created` 是 UTC（`...Z`），
+   `date -Iseconds` 是本地 `+08:00`，字符串字典序比较永远为假。轮询 40 次全判
+   “still old container”→ 对一次成功的切换走了回滚分支。
+2. **回滚静默无效**：回滚里 `midclt call -job app.stop` 没生效，导致
+   `docker tag latest -> v0.7.24` 生效、容器却仍是 v0.7.26 →
+   **「容器跑新镜像、`latest` 指旧镜像」**，下次重启会静默降级。
+   已于 10:07 用 `docker tag ...:v0.7.26 ...:latest` 拆弹。
+3. **notify 失败被当成异常信号**：微信 iLink 返回
+   `session not ready: ... the user must send the bot a message first (or re-pair)`。
+
+### 0.7.26 新增的 gateway 门槛（本次最大的隐藏坑）
+
+- 服务端 `e0e()` 第一句即 `if (t?.enabled !== true) return`，开关是 Studio 的
+  `gatewayAutoStart`（存 `~/.hermes-web-ui/settings.json`，未创建时默认**关闭**，形状
+  `{enabled, include?, exclude?}`）。叠加老毛病：`gateway_state.json` 记
+  `desired_state=running` + 已随旧容器消失的 pid 111 → 启动恢复判定「已在跑」→ 跳过。
+- 症状：三个 profile 的 gateway 全未启动，`hermesa/cron/ticker_heartbeat` 卡在 08:14:30，
+  平台 bot / webhook 全挂。
+- 修复：清掉陈旧 `gateway_state.json`（pid 不存在者）→
+  `docker exec -d -w /opt/hermes <ct> /opt/hermes/.venv/bin/hermes gateway run --replace`
+  → 现在 **core 0.21.5 是「一个宿主网关多路复用全 profile」**：
+  ```
+  ✓ default (current)   — PID 2464
+  ✓ copilot             — served by the default multiplexer
+  ✓ qwn                 — served by the default multiplexer
+  ```
+  default 平台 `api_server/webhook/weixin` 全部 `connected`；心跳恢复每 60s 刷新。
+
+## 切换 / 回滚（v2 通用脚本 `deploy/redeploy-verify.sh`）
+
+```bash
+# TrueNAS 宿主 root
+setsid nohup bash /tmp/redeploy-verify.sh <NEW_TAG> <OLD_TAG> [DELAY] &
+# 例: EXPECT_CORE=0.21.5 setsid nohup bash /tmp/redeploy-verify.sh v0.7.27 v0.7.26 30 &
+```
+
+v2 相对 v1 的改进：**epoch 比较**（跨时区安全）、**回滚分支逐步记日志 + 校验容器真换代**、
+**内置 gateway 处理**（切前 `hermes gateway stop`；切后清陈旧状态 + 拉起 + 校验
+`gateway list` 与心跳 age < 120s）、**notify 失败不算部署失败**，并且 tag 参数化。
 
 回滚：
 ```bash
@@ -98,8 +138,9 @@ midclt call -job app.start hui
 ```
 **v0.7.24 与 v0.6.47 镜像都不要删。**
 
-## 待办
+## 遗留（需要用户动作）
 
-- [ ] 用户在合适窗口执行切换（当前生产仍跑 0.7.24 + core 0.20.6，`:latest` 未动）
-- [ ] 切换后按脚本结果文件核对：`status=OK`、`hermes_core=0.21.5`、
-      TDAI `available: true`、gateway `vectorStore: true`、Studio DB 计数不变
+1. **微信出站**：先给 bot 发一条消息，iLink 会话才恢复（否则所有 `hermes send` 失败）。
+2. **Studio 设置里开启 Gateway 自动启动**：不打开的话，下次容器重启网关不会自起，
+   得手工 `hermes gateway run --replace`。（写 settings.json 后服务端有内存缓存，需重启才生效，
+   所以走 UI 开关更省事。）
